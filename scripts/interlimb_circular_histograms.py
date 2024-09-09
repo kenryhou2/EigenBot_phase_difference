@@ -9,7 +9,7 @@ from matplotlib.transforms import Affine2D
 from scipy.stats import circmean, circstd
 
 
-def plot_ring_histogram(ax, datasets, colors, labels, variable_name):
+def plot_ring_histogram(ax, datasets, colors, labels, variable_name, vert=True):
     """
     Plot a circular histogram with mean and standard deviation on the provided axes.
     """
@@ -32,7 +32,10 @@ def plot_ring_histogram(ax, datasets, colors, labels, variable_name):
             inner_radius = 0
             outer_radius = ring_thickness
 
-        rotation_angle = 3 * np.pi / 2
+        if vert:
+            rotation_angle = 3 * np.pi / 2
+        else:
+            rotation_angle = 0
         wedge = Wedge(
             center=(0, 0),
             r=outer_radius,  # Outer radius
@@ -47,18 +50,34 @@ def plot_ring_histogram(ax, datasets, colors, labels, variable_name):
         wedge.set_transform(transform)
         ax.add_patch(wedge)
 
+        if vert:
+            mean = np.pi - mean # not sure why the mean values were reflected across pi/2 for the vert config
+
+        # Plot the mean as a ray in the same color
+        ax.plot(
+            [mean, mean], 
+            [0, outer_radius],
+            color=color,
+            linewidth=2,
+        )
+
         print(
             f"Variable: {variable_name}, Color: {color}, Mean: {mean / np.pi}, STD DEV: {std_dev / np.pi}"
         )
 
-    ax.set_title(variable_name)
+    # ax.set_title(variable_name)
     ax.set_xticks([0, np.pi / 2, np.pi])
-    ax.set_xticklabels([r"$0$", r"$\frac{\pi}{2}$", r"$\pi$"], fontsize=8)
+    ax.set_xticklabels([r"$0$", r"$\frac{\pi}{2}$", r"$\pi$"], fontsize=15)
     ax.set_yticklabels([])
 
     ax.set_ylim(0, 1)
-    ax.set_theta_zero_location("N")  # Move 0 to the North
-    ax.set_theta_direction(-1)  # Set the direction of theta to be clockwise
+
+    if not vert:
+        ax.set_theta_zero_location("E")  # Move 0 to the North
+        ax.set_theta_direction(1)  # Set the direction of theta to be clockwise
+    else:
+        ax.set_theta_zero_location("N")
+        ax.set_theta_direction(-1)
     ax.set_xlim(0, np.pi)
 
 
@@ -100,7 +119,7 @@ def plot_circular_histogram(ax, datasets, colors, labels, variable_name):
     ax.set_rticks([])
 
     ax.set_ylim(0, 1)
-    ax.set_theta_zero_location("N")  # Move 0 to the North
+    ax.set_theta_zero_location("E")  # Move 0 to the North
     ax.set_theta_direction(-1)  # Set the direction of theta to be clockwise
     ax.set_xlim(0, np.pi)
 
@@ -143,15 +162,28 @@ def main(file_paths):
     # ]
 
     # This is hard code for 7 plots
+
+    # if ifVert:
     positions = [  # (x0, y0, width, height)
-        (0.4, 0.7, 0.25, 0.25),  # Column 2, Top center
-        (0.15, 0.6, 0.25, 0.25),  # Column 1, Middle left
-        (0.4, 0.45, 0.25, 0.25),  # Column 2, Middle center
-        (0.65, 0.6, 0.25, 0.25),  # Column 3, Middle right
-        (0.15, 0.35, 0.25, 0.25),  # Column 1, Bottom left
-        (0.4, 0.2, 0.25, 0.25),  # Column 2, Bottom center
-        (0.65, 0.35, 0.25, 0.25),  # Column 3, Bottom right
+        (0.4, 0.7, 0.25, 0.25)  # Column 2, Top center (L1-R1)
+        ,(0.4, 0.45, 0.25, 0.25)  # Column 2, Middle center (L2-R2)
+        ,(0.4, 0.2, 0.25, 0.25)  # Column 2, Bottom center (L3-R3)
+        ,(0.15, 0.6, 0.25, 0.25)  # Column 1, Middle left (L1-L2)
+        ,(0.15, 0.35, 0.25, 0.25)  # Column 1, Bottom left (L1-L3)
+        ,(0.65, 0.6, 0.25, 0.25)  # Column 3, Middle right (R1-R2
+        ,(0.65, 0.35, 0.25, 0.25)  # Column 3, Bottom right (R1-R3)
     ]
+    # else:
+    #     positions = [  # (x0, y0, width, height)
+    #         (0.4, 0.7, 0.25, 0.25),  # Column 2, Top center
+    #         (0.15, 0.6, 0.25, 0.25),  # Column 1, Middle left
+    #         (0.4, 0.45, 0.25, 0.25),  # Column 2, Middle center
+    #         (0.65, 0.6, 0.25, 0.25),  # Column 3, Middle right
+    #         (0.15, 0.35, 0.25, 0.25),  # Column 1, Bottom left
+    #         (0.4, 0.2, 0.25, 0.25),  # Column 2, Bottom center
+    #         (0.65, 0.35, 0.25, 0.25),  # Column 3, Bottom right
+    #     ]
+
     axs = []
     for pos in positions:
         ax = fig.add_axes(pos, polar=True)
@@ -178,7 +210,8 @@ def main(file_paths):
         ax = axs[i]
 
         if ifRing:
-            plot_ring_histogram(ax, datasets, colors, labels, column)
+            plot_ring_histogram(ax, datasets, colors, labels, column, ifVert)
+            
         else:
             plot_circular_histogram(ax, datasets, colors, labels, column)
         print()
@@ -190,15 +223,16 @@ def main(file_paths):
     # plt.tight_layout()
     plt.subplots_adjust(wspace=-0.4, hspace=0.4)
     if ifRing:
-        plt.savefig("interlimb_ring_histograms.png", dpi=300)
+        plt.savefig("interlimb_ring_histograms.png", dpi=600)
     else:
-        plt.savefig("interlimb_circular_histograms.png", dpi=300)
+        plt.savefig("interlimb_circular_histograms.png", dpi=360)
 
     plt.show()
 
 
 if __name__ == "__main__":
     ifRing = True
+    ifVert = True
     file_paths = [
         "data/No_Amputation_Flat.csv",
         "data/Amputate_L2R2.csv",

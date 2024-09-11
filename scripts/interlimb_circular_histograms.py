@@ -13,13 +13,14 @@ def plot_ring_histogram(ax, datasets, colors, labels, variable_name, vert=True):
     """
     Plot a circular histogram with mean and standard deviation on the provided axes.
     """
-    ring_thickness = 0.15
+    ring_thickness = 0.1
     for i, (data, color, label) in enumerate(zip(datasets, colors, labels)):
         if data is None or len(data) == 0:
+            print(f"Data is None for {label} for`{variable_name}`")
             continue
 
-        mean = circmean(data, high=np.pi, low=0)
-        std_dev = circstd(data, high=np.pi, low=0)
+        mean = circmean(data, high=np.pi, low=-np.pi)
+        std_dev = circstd(data, high=np.pi, low=-np.pi)
 
         start_angle = mean - std_dev
         end_angle = mean + std_dev
@@ -42,7 +43,7 @@ def plot_ring_histogram(ax, datasets, colors, labels, variable_name, vert=True):
             width=ring_thickness,  # Ring thickness
             theta1=np.degrees(start_angle),
             theta2=np.degrees(end_angle),
-            color=color,
+            color=colors[i],
             alpha=0.5,
             transform=ax.transData._b,
         )
@@ -57,17 +58,31 @@ def plot_ring_histogram(ax, datasets, colors, labels, variable_name, vert=True):
         ax.plot(
             [mean, mean], 
             [0, outer_radius],
-            color=color,
+            color=colors[i],
             linewidth=2,
         )
 
+        # ax.hist(data, bins=30, color=color, alpha=0.5)  # Uncomment to plot the histogram
+
+        # # Annotate the mean and standard deviation
+        # ax.annotate(
+        #     f"Mean: {mean / np.pi:.2f}π\nStd Dev: {std_dev / np.pi:.2f}π",
+        #     xy=(mean, outer_radius),
+        #     xytext=(mean + 0.1, outer_radius + 0.1),
+        #     fontsize=8,
+        #     color=color,
+        #     ha="center",
+        #     arrowprops=dict(facecolor=color, shrink=0.05, width=1, headwidth=5),
+        # )
+
         print(
-            f"Variable: {variable_name}, Color: {color}, Mean: {mean / np.pi}, STD DEV: {std_dev / np.pi}"
+            f"Label: {label}, Variable: {variable_name}, Color: {colors[i]}, Mean: {mean / np.pi}, STD DEV: {std_dev / np.pi}"
         )
 
     # ax.set_title(variable_name)
+    # ax.legend(labels, loc="upper right", fontsize=8)
     ax.set_xticks([0, np.pi / 2, np.pi])
-    ax.set_xticklabels([r"$0$", r"$\frac{\pi}{2}$", r"$\pi$"], fontsize=15)
+    ax.set_xticklabels([r"$0$", r"$\frac{\pi}{2}$", r"$\pi$"], fontsize=20)
     ax.set_yticklabels([])
 
     ax.set_ylim(0, 1)
@@ -202,9 +217,9 @@ def main(file_paths):
                 datasets.append(phase_data)
             else:
                 datasets.append(None)
-        print(f"datasets {dataframes[0].columns[i]}: {datasets}")
+        # print(f"datasets {dataframes[0].columns[i]}: {datasets}")
 
-        colors = ["red", "blue", "orange", "green", "brown", "purple"][: len(datasets)]
+        colors = ["red", "blue", "orange", "green", "brown", "purple", "black"][: len(datasets)]
         labels = file_labels[: len(datasets)]
 
         ax = axs[i]
@@ -232,7 +247,7 @@ def main(file_paths):
 
 if __name__ == "__main__":
     ifRing = True
-    ifVert = True
+    ifVert = False
     file_paths = [
         "data/No_Amputation_Flat.csv",
         "data/Amputate_L2R2.csv",
@@ -240,5 +255,6 @@ if __name__ == "__main__":
         "data/Amputate_L3.csv",
         "data/Amputate_R2.csv",
         "data/Ablation.csv",
+        "data/terrain_phase.csv"
     ]
     main(file_paths)
